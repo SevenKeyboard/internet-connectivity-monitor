@@ -26,8 +26,8 @@ Example Usage:
 
 class VersionManager_InternetConnectivityMonitor
 {
-    static _ := this._init()
-    static _init()    {
+    static _ := VersionManager_InternetConnectivityMonitor._init()
+    _init()    {
         global
         INTERNETCONNECTIVITYMONITOR_VERSION := "1.0.0"
     }
