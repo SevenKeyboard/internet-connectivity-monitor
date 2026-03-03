@@ -1,4 +1,4 @@
-﻿#Requires AutoHotkey v1.1.0+
+﻿#Requires AutoHotkey v1.1.35+
 ;==============================================================
 ; InternetConnectivityMonitor — Internet connect/disconnect event monitor (NLM events + connectivity query)
 ;
@@ -66,7 +66,7 @@ class InternetConnectivityMonitor
                 }  catch  {
                     return false
                 }
-                return (connectivity & NLM_CONNECTIVITY_IPV4_INTERNET || connectivity & NLM_CONNECTIVITY_IPV6_INTERNET)
+                return !!(connectivity & NLM_CONNECTIVITY_IPV4_INTERNET || connectivity & NLM_CONNECTIVITY_IPV6_INTERNET)
         }
     }
     onEvent(callback, addRemove := 1)    {
@@ -140,7 +140,7 @@ class InternetConnectivityMonitor
         }  catch  {
             return false
         }
-        internetExist:= this._isConnected:= (connectivity & NLM_CONNECTIVITY_IPV4_INTERNET || connectivity & NLM_CONNECTIVITY_IPV6_INTERNET)
+        internetExist:= this._isConnected:= !!(connectivity & NLM_CONNECTIVITY_IPV4_INTERNET || connectivity & NLM_CONNECTIVITY_IPV6_INTERNET)
         events := [3    ;  QueryInterface
             ,1          ;  AddRef
             ,1          ;  Release
@@ -154,14 +154,17 @@ class InternetConnectivityMonitor
                 ,"Ptr")
         }
         pSink := dllCall("Kernel32.dll\GlobalAlloc", "UInt",GMEM_FIXED, "UPtr",A_PtrSize + 8, "Ptr")
-        if (!pSink)
+        if (!pSink)    {
+            this._freeCallbackTable()
             return false
+        }
         numPut(this.getAddress("_callbackTable"), pSink + 0, 0, "Ptr")
         numPut(internetExist, pSink + 0, A_PtrSize, "UInt")
         numPut(refCount := 0, pSink + 0, A_PtrSize + 4, "UInt")
         connectionPointContainer := comObjQuery(this._networkListManager, IID_IConnectionPointContainer)
         if (!connectionPointContainer)    {
             dllCall("Kernel32.dll\GlobalFree", "Ptr",pSink, "Ptr")
+            this._freeCallbackTable()
             return false
         }
         varSetCapacity(clsid, 16, 0)
@@ -169,15 +172,17 @@ class InternetConnectivityMonitor
         ;  IConnectionPointContainer::FindConnectionPoint
         hr := dllCall(numGet(numGet(connectionPointContainer + 0) + A_PtrSize * 4), "Ptr",connectionPointContainer, "Ptr",&clsid, "Ptr*",connectionPoint, "Int")
         objRelease(connectionPointContainer)
-        if (hr !== S_OK || !connectionPoint) {
+        if (hr !== S_OK || !connectionPoint)    {
             dllCall("Kernel32.dll\GlobalFree", "Ptr",pSink, "Ptr")
+            this._freeCallbackTable()
             return false
         }
         ;  IConnectionPoint::Advise
         hr := dllCall(numGet(numGet(connectionPoint + 0) + A_PtrSize * 5), "Ptr",connectionPoint, "Ptr",pSink, "UInt*",nCookie, "Int")
-        if (hr !== S_OK || !nCookie) {
+        if (hr !== S_OK || !nCookie)    {
             objRelease(connectionPoint)
             dllCall("Kernel32.dll\GlobalFree", "Ptr",pSink, "Ptr")
+            this._freeCallbackTable()
             return false
         }
         this._connectionPoint := connectionPoint
@@ -185,6 +190,16 @@ class InternetConnectivityMonitor
         onExit(objBindMethod(this, "_onApplicationExit"))
         isInitialized := true
         return true
+    }
+    _freeCallbackTable()    {
+        if (this.hasKey("_callbackTable") && this._callbackTable)    {
+            loop % (this.getCapacity("_callbackTable") // A_PtrSize)    {
+                addr := numGet(this.getAddress("_callbackTable"), A_PtrSize * (A_Index - 1), "Ptr")
+                if (addr)
+                    dllCall("Kernel32.dll\GlobalFree", "Ptr",addr, "Ptr")
+            }
+            this.setCapacity("_callbackTable", 0)
+        }
     }
     _onApplicationExit(exitReason, exitCode)    {
         local
@@ -217,7 +232,7 @@ networkListManagerEventsSink_BC5A0D9D(pSink, guid := "", ppvObject := "")    {
     }
     switch (A_EventInfo)
     {
-        case 0: ;  QueryInterface
+        case 0: ;  INetworkListManagerEvents::QueryInterface
             if (dllCall("Ole32.dll\IsEqualGUID", "Ptr",guid, "Ptr",&p1, "Int") || dllCall("Ole32.dll\IsEqualGUID", "Ptr",guid, "Ptr",&p2, "Int"))    {
                 numPut(pSink, ppvObject + 0, 0, "Ptr")
                 refCount := numGet(pSink + 0, A_PtrSize + 4, "UInt")
@@ -227,11 +242,11 @@ networkListManagerEventsSink_BC5A0D9D(pSink, guid := "", ppvObject := "")    {
                 numPut(0, ppvObject + 0, 0, "Ptr")
                 return E_NOINTERFACE
             }
-        case 1: ;  AddRef
+        case 1: ;  INetworkListManagerEvents::AddRef
             refCount := numGet(pSink + 0, A_PtrSize + 4, "UInt")
             numPut(++refCount, pSink + 0, A_PtrSize + 4, "UInt")
             return refCount
-        case 2: ;  Release
+        case 2: ;  INetworkListManagerEvents::Release
             refCount := numGet(pSink + 0, A_PtrSize + 4, "UInt")
             if (0 < refCount)    {
                 numPut(--refCount, pSink + 0, A_PtrSize + 4, "UInt")
@@ -239,7 +254,7 @@ networkListManagerEventsSink_BC5A0D9D(pSink, guid := "", ppvObject := "")    {
                     dllCall("Kernel32.dll\GlobalFree", "Ptr",pSink, "Ptr")
             }
             return refCount
-        case 3: ;  ConnectivityChanged
+        case 3: ;  INetworkListManagerEvents::ConnectivityChanged
             internetExist := numGet(pSink + 0, A_PtrSize, "UInt")
             if (guid & NLM_CONNECTIVITY_IPV4_INTERNET || guid & NLM_CONNECTIVITY_IPV6_INTERNET)    {
                 if (!internetExist)
