@@ -29,7 +29,7 @@ class VersionManager_InternetConnectivityMonitor
     static _ := VersionManager_InternetConnectivityMonitor._init()
     _init()    {
         global
-        INTERNETCONNECTIVITYMONITOR_VERSION := "1.0.1"
+        INTERNETCONNECTIVITYMONITOR_VERSION := "1.0.2"
     }
 }
 class InternetConnectivityMonitor
@@ -61,7 +61,7 @@ class InternetConnectivityMonitor
     }
     onEvent(callback, addRemove := 1)    {
         local
-        this._initNetworkMonitoring()
+        ok := this._initNetworkMonitoring()
         for i, v in this._callbacks    {
             if (v == callback)    {
                 this._callbacks.removeAt(i)
@@ -73,6 +73,7 @@ class InternetConnectivityMonitor
             case 1:     this._callbacks.push(callback)
             case -1:    this._callbacks.insertAt(1, callback)
         }
+        return ok
     }
     isEventRegistered(callback)    {
         local
@@ -142,11 +143,12 @@ class InternetConnectivityMonitor
                 ,this.getAddress("_callbackTable") ;  callbackTable
                 ,A_PtrSize * (i - 1))
         }
-        pSink := dllCall("Kernel32.dll\GlobalAlloc", "UInt",GMEM_FIXED, "UPtr",A_PtrSize + 4, "Ptr")
+        pSink := dllCall("Kernel32.dll\GlobalAlloc", "UInt",GMEM_FIXED, "UPtr",A_PtrSize + 8, "Ptr")
         if (!pSink)
             return false
         numPut(this.getAddress("_callbackTable"), pSink + 0, 0) ;  numPut(&callbackTable, pSink + 0, 0)
         numPut(internetExist, pSink + 0, A_PtrSize, "UInt")
+        numPut(refCount := 0, pSink + 0, A_PtrSize + 4, "UInt")
         connectionPointContainer := comObjQuery(this._networkListManager, IID_IConnectionPointContainer)
         if (!connectionPointContainer)    {
             dllCall("Kernel32.dll\GlobalFree", "Ptr",pSink, "Ptr")
@@ -178,6 +180,8 @@ class InternetConnectivityMonitor
         local
         connectionPoint := this._connectionPoint
         nCookie := this._nCookie
+        this._connectionPoint := 0
+        this._nCookie := 0
         if (connectionPoint)    {
             ;  IConnectionPoint::Unadvise
             dllCall(numGet(numGet(connectionPoint + 0) + A_PtrSize * 6), "Ptr",connectionPoint, "UInt",nCookie, "Int")
@@ -193,39 +197,40 @@ networkListManagerEventsSink_BC5A0D9D(pSink, guid = "", ppvObject = "")    {
         ,NLM_CONNECTIVITY_IPV4_INTERNET := 0x40
         ,NLM_CONNECTIVITY_IPV6_INTERNET := 0x400
         ,E_NOINTERFACE := 0x80004002
-        ,refCount := 0
         ,p1
         ,p2
-        ,internetExist
     if (!isSet(p1))    {
         varSetCapacity(p1, 16, 0)
         dllCall("Ole32.dll\CLSIDFromString", "WStr",IID_IUnknown, "Ptr",&p1, "Int")
         varSetCapacity(p2, 16, 0)
         dllCall("Ole32.dll\CLSIDFromString", "WStr",IID_INetworkListManagerEvents, "Ptr",&p2, "Int")
-        internetExist := numGet(pSink + 0, A_PtrSize, "UInt")
     }
     switch (A_EventInfo)
     {
         case 0: ;  QueryInterface
             if (dllCall("Ole32.dll\IsEqualGUID", "Ptr",guid, "Ptr",&p1, "Int") || dllCall("Ole32.dll\IsEqualGUID", "Ptr",guid, "Ptr",&p2, "Int"))    {
-                numPut(pSink, ppvObject + 0)
-                ++refCount
+                numPut(pSink, ppvObject + 0, 0, "Ptr")
+                refCount := numGet(pSink + 0, A_PtrSize + 4, "UInt")
+                numPut(++refCount, pSink + 0, A_PtrSize + 4, "UInt")
                 return 0
             }  else  {
-                numPut(0, ppvObject + 0)
+                numPut(0, ppvObject + 0, 0, "Ptr")
                 return E_NOINTERFACE
             }
         case 1: ;  AddRef
-            ++refCount
+            refCount := numGet(pSink + 0, A_PtrSize + 4, "UInt")
+            numPut(++refCount, pSink + 0, A_PtrSize + 4, "UInt")
             return refCount
         case 2: ;  Release
+            refCount := numGet(pSink + 0, A_PtrSize + 4, "UInt")
             if (0 < refCount)    {
-                --refCount
+                numPut(--refCount, pSink + 0, A_PtrSize + 4, "UInt")
                 if (refCount == 0)
                     dllCall("Kernel32.dll\GlobalFree", "Ptr",pSink, "Ptr")
             }
             return refCount
         case 3: ;  ConnectivityChanged
+            internetExist := numGet(pSink + 0, A_PtrSize, "UInt")
             if (guid & NLM_CONNECTIVITY_IPV4_INTERNET || guid & NLM_CONNECTIVITY_IPV6_INTERNET)    {
                 if (!internetExist)
                     InternetConnectivityMonitor.delayedInvokeTimer(internetExist := true)
@@ -233,6 +238,7 @@ networkListManagerEventsSink_BC5A0D9D(pSink, guid = "", ppvObject = "")    {
                 if (internetExist)
                     InternetConnectivityMonitor.delayedInvokeTimer(internetExist := false)
             }
+            numPut(internetExist, pSink + 0, A_PtrSize, "UInt")
             return 0
     }
 }
