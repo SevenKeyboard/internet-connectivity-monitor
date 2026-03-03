@@ -227,8 +227,8 @@ networkListManagerEventsSink_BC5A0D9D(pSink, guid = "", ppvObject = "")    {
             return refCount
         case 3: ;  ConnectivityChanged
             if (guid & NLM_CONNECTIVITY_IPV4_INTERNET || guid & NLM_CONNECTIVITY_IPV6_INTERNET)    {
-            if (!internetExist)
-                InternetConnectivityMonitor.delayedInvokeTimer(internetExist := true)
+                if (!internetExist)
+                    InternetConnectivityMonitor.delayedInvokeTimer(internetExist := true)
             }  else  {
                 if (internetExist)
                     InternetConnectivityMonitor.delayedInvokeTimer(internetExist := false)
