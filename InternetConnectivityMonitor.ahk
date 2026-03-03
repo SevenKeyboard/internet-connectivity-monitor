@@ -118,7 +118,6 @@ class InternetConnectivityMonitor
         return (this.hasKey("_networkListManager"))
     }
     _initNetworkMonitoring()    {
-        ;  global callbackTable
         local
         static isInitialized := false
             ,IID_IConnectionPointContainer  := "{B196B284-BAB4-101A-B69C-00AA00341D07}"
@@ -141,17 +140,18 @@ class InternetConnectivityMonitor
             ,1          ;  AddRef
             ,1          ;  Release
             ,2]         ;  ConnectivityChanged
-        this.setCapacity("_callbackTable", byteSize := A_PtrSize * events.length()) ;  varSetCapacity(callbackTable, A_PtrSize * events.length(), 0)
+        this.setCapacity("_callbackTable", byteSize := A_PtrSize * events.length())
         dllCall("Ntdll.dll\RtlFillMemory", "Ptr",this.getAddress("_callbackTable"), "UPtr",byteSize, "Int",0)
         for i, paramCount in events    {
             numPut(registerCallback("networkListManagerEventsSink_BC5A0D9D", "Fast", paramCount, i - 1)
-                ,this.getAddress("_callbackTable") ;  callbackTable
-                ,A_PtrSize * (i - 1))
+                ,this.getAddress("_callbackTable")
+                ,A_PtrSize * (i - 1)
+                ,"Ptr")
         }
         pSink := dllCall("Kernel32.dll\GlobalAlloc", "UInt",GMEM_FIXED, "UPtr",A_PtrSize + 8, "Ptr")
         if (!pSink)
             return false
-        numPut(this.getAddress("_callbackTable"), pSink + 0, 0) ;  numPut(&callbackTable, pSink + 0, 0)
+        numPut(this.getAddress("_callbackTable"), pSink + 0, 0, "Ptr")
         numPut(internetExist, pSink + 0, A_PtrSize, "UInt")
         numPut(refCount := 0, pSink + 0, A_PtrSize + 4, "UInt")
         connectionPointContainer := comObjQuery(this._networkListManager, IID_IConnectionPointContainer)
