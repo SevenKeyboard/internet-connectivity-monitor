@@ -14,7 +14,6 @@
 ;     https://learn.microsoft.com/en-us/windows/win32/api/ocidl/nn-ocidl-iconnectionpointcontainer
 ;   Alert on internet connect or disconnect
 ;     https://www.autohotkey.com/boards/viewtopic.php?t=113844
-;
 ;==============================================================
 
 /*
