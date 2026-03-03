@@ -211,14 +211,16 @@ class InternetConnectivityMonitor
         dllCall("Ole32.dll\CLSIDFromString", "WStr",IID_IUnknown, "Ptr",this._guidIUnknown.Ptr, "Int")
         dllCall("Ole32.dll\CLSIDFromString", "WStr",IID_INetworkListManagerEvents, "Ptr",this._guidINetworkListManagerEvents.Ptr, "Int")
     }
-    static _networkListManagerEventsSink(methodIndex, pSink, guid?, ppvObject?)    {
+    static _networkListManagerEventsSink(methodIndex, pSink, arg2?, arg3?)    {
         static NLM_CONNECTIVITY_IPV4_INTERNET   := 0x40
             ,NLM_CONNECTIVITY_IPV6_INTERNET     := 0x400
             ,E_NOINTERFACE := 0x80004002
         switch (methodIndex)
         {
             case 0: ;  INetworkListManagerEvents::QueryInterface
-                if (dllCall("Ole32.dll\IsEqualGUID", "Ptr",guid, "Ptr",this._guidIUnknown.Ptr, "Int") || dllCall("Ole32.dll\IsEqualGUID", "Ptr",guid, "Ptr",this._guidINetworkListManagerEvents.Ptr, "Int"))    {
+                riid := arg2
+                ppvObject := arg3
+                if (dllCall("Ole32.dll\IsEqualGUID", "Ptr",riid, "Ptr",this._guidIUnknown.Ptr, "Int") || dllCall("Ole32.dll\IsEqualGUID", "Ptr",riid, "Ptr",this._guidINetworkListManagerEvents.Ptr, "Int"))    {
                     numPut("Ptr",pSink, ppvObject + 0, 0)
                     refCount := numGet(pSink + 0, A_PtrSize + 4, "UInt")
                     numPut("UInt",++refCount, pSink + 0, A_PtrSize + 4)
@@ -240,8 +242,9 @@ class InternetConnectivityMonitor
                 }
                 return refCount
             case 3: ;  INetworkListManagerEvents::ConnectivityChanged
+                newConnectivity := arg2
                 internetExist := numGet(pSink + 0, A_PtrSize, "UInt")
-                if (guid & NLM_CONNECTIVITY_IPV4_INTERNET || guid & NLM_CONNECTIVITY_IPV6_INTERNET)    {
+                if (newConnectivity & NLM_CONNECTIVITY_IPV4_INTERNET || newConnectivity & NLM_CONNECTIVITY_IPV6_INTERNET)    {
                     if (!internetExist)
                         this._delayedInvokeTimer(internetExist := true)
                 }  else  {
