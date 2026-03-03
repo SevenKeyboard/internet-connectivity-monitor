@@ -7,8 +7,14 @@
 ; License: MIT License
 ;
 ; Documentation / References:
+;   IConnectionPoint interface (ocidl.h)
+;   IConnectionPointContainer interface (ocidl.h)
+;     C:\Program Files (x86)\Windows Kits\10\Include\10.0.xxxxx.0\um\ocidl.h
+;     https://learn.microsoft.com/en-us/windows/win32/api/ocidl/nn-ocidl-iconnectionpoint
+;     https://learn.microsoft.com/en-us/windows/win32/api/ocidl/nn-ocidl-iconnectionpointcontainer
 ;   Alert on internet connect or disconnect
 ;     https://www.autohotkey.com/boards/viewtopic.php?t=113844
+;
 ;==============================================================
 
 /*
