@@ -214,7 +214,7 @@ class InternetConnectivityMonitor
         }
     }
 }
-networkListManagerEventsSink_BC5A0D9D(pSink, guid := "", ppvObject := "")    {
+networkListManagerEventsSink_BC5A0D9D(pSink, arg2 := "", arg3 := "")    {
     local
     global InternetConnectivityMonitor
     static IID_IUnknown                 := "{00000000-0000-0000-C000-000000000046}"
@@ -222,18 +222,20 @@ networkListManagerEventsSink_BC5A0D9D(pSink, guid := "", ppvObject := "")    {
         ,NLM_CONNECTIVITY_IPV4_INTERNET := 0x40
         ,NLM_CONNECTIVITY_IPV6_INTERNET := 0x400
         ,E_NOINTERFACE := 0x80004002
-        ,p1
-        ,p2
-    if (!isSet(p1))    {
-        varSetCapacity(p1, 16, 0)
-        dllCall("Ole32.dll\CLSIDFromString", "WStr",IID_IUnknown, "Ptr",&p1, "Int")
-        varSetCapacity(p2, 16, 0)
-        dllCall("Ole32.dll\CLSIDFromString", "WStr",IID_INetworkListManagerEvents, "Ptr",&p2, "Int")
+        ,guidIUnknown
+        ,guidINetworkListManagerEvents
+    if (!isSet(guidIUnknown))    {
+        varSetCapacity(guidIUnknown, 16, 0)
+        dllCall("Ole32.dll\CLSIDFromString", "WStr",IID_IUnknown, "Ptr",&guidIUnknown, "Int")
+        varSetCapacity(guidINetworkListManagerEvents, 16, 0)
+        dllCall("Ole32.dll\CLSIDFromString", "WStr",IID_INetworkListManagerEvents, "Ptr",&guidINetworkListManagerEvents, "Int")
     }
     switch (A_EventInfo)
     {
         case 0: ;  INetworkListManagerEvents::QueryInterface
-            if (dllCall("Ole32.dll\IsEqualGUID", "Ptr",guid, "Ptr",&p1, "Int") || dllCall("Ole32.dll\IsEqualGUID", "Ptr",guid, "Ptr",&p2, "Int"))    {
+            riid := arg2
+            ppvObject := arg3
+            if (dllCall("Ole32.dll\IsEqualGUID", "Ptr",riid, "Ptr",&guidIUnknown, "Int") || dllCall("Ole32.dll\IsEqualGUID", "Ptr",riid, "Ptr",&guidINetworkListManagerEvents, "Int"))    {
                 numPut(pSink, ppvObject + 0, 0, "Ptr")
                 refCount := numGet(pSink + 0, A_PtrSize + 4, "UInt")
                 numPut(++refCount, pSink + 0, A_PtrSize + 4, "UInt")
@@ -255,8 +257,9 @@ networkListManagerEventsSink_BC5A0D9D(pSink, guid := "", ppvObject := "")    {
             }
             return refCount
         case 3: ;  INetworkListManagerEvents::ConnectivityChanged
+            newConnectivity := arg2
             internetExist := numGet(pSink + 0, A_PtrSize, "UInt")
-            if (guid & NLM_CONNECTIVITY_IPV4_INTERNET || guid & NLM_CONNECTIVITY_IPV6_INTERNET)    {
+            if (newConnectivity & NLM_CONNECTIVITY_IPV4_INTERNET || newConnectivity & NLM_CONNECTIVITY_IPV6_INTERNET)    {
                 if (!internetExist)
                     InternetConnectivityMonitor.delayedInvokeTimer(internetExist := true)
             }  else  {
