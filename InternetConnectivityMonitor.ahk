@@ -12,19 +12,24 @@
 ;     C:\Program Files (x86)\Windows Kits\10\Include\10.0.xxxxx.0\um\ocidl.h
 ;     https://learn.microsoft.com/en-us/windows/win32/api/ocidl/nn-ocidl-iconnectionpoint
 ;     https://learn.microsoft.com/en-us/windows/win32/api/ocidl/nn-ocidl-iconnectionpointcontainer
+;   INetworkListManagerEvents interface (netlistmgr.h)
+;     C:\Program Files (x86)\Windows Kits\10\Include\10.0.xxxxx.0\um\netlistmgr.h
+;     https://learn.microsoft.com/en-us/windows/win32/api/netlistmgr/nn-netlistmgr-inetworklistmanagerevents
+;
 ;   Alert on internet connect or disconnect
 ;     https://www.autohotkey.com/boards/viewtopic.php?t=113844
 ;==============================================================
 
 /*
 Example Usage:
-    #SingleInstance Force
+
     #Persistent
-    fn := func("callback")
+    fn := func("onInternetConnectivityChanged")
     InternetConnectivityMonitor.onEvent(fn)
-    callback(connectivity)    {
+    onInternetConnectivityChanged(connectivity)    {
         msgbox % connectivity
     }
+
     F2::msgbox % InternetConnectivityMonitor.isConnected()
     F3::msgbox % InternetConnectivityMonitor.isConnected(true)
 */
