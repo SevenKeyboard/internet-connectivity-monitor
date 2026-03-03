@@ -159,10 +159,10 @@ class InternetConnectivityMonitor
             dllCall("Kernel32.dll\GlobalFree", "Ptr",pSink, "Ptr")
             return false
         }
-        varSetCapacity(CLSID, 16, 0)
-        dllCall("Ole32.dll\CLSIDFromString", "WStr",IID_INetworkListManagerEvents, "Ptr",&CLSID, "Int")
+        varSetCapacity(clsid, 16, 0)
+        dllCall("Ole32.dll\CLSIDFromString", "WStr",IID_INetworkListManagerEvents, "Ptr",&clsid, "Int")
         ;  IConnectionPointContainer::FindConnectionPoint
-        hr := dllCall(numGet(numGet(connectionPointContainer + 0) + A_PtrSize * 4), "Ptr",connectionPointContainer, "Ptr",&CLSID, "Ptr*",connectionPoint, "Int")
+        hr := dllCall(numGet(numGet(connectionPointContainer + 0) + A_PtrSize * 4), "Ptr",connectionPointContainer, "Ptr",&clsid, "Ptr*",connectionPoint, "Int")
         objRelease(connectionPointContainer)
         if (hr !== S_OK || !connectionPoint) {
             dllCall("Kernel32.dll\GlobalFree", "Ptr",pSink, "Ptr")
@@ -194,7 +194,7 @@ class InternetConnectivityMonitor
         }
     }
 }
-networkListManagerEventsSink_BC5A0D9D(pSink, guid = "", ppvObject = "")    {
+networkListManagerEventsSink_BC5A0D9D(pSink, guid := "", ppvObject := "")    {
     local
     global InternetConnectivityMonitor
     static IID_IUnknown                 := "{00000000-0000-0000-C000-000000000046}"
