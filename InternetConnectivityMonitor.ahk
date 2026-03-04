@@ -151,7 +151,11 @@ class InternetConnectivityMonitor
         numPut("Ptr",this._callbackTable.Ptr    ,pSink + 0, 0)
         numPut("UInt",internetExist             ,pSink + 0, A_PtrSize)
         numPut("UInt",refCount := 0             ,pSink + 0, A_PtrSize + 4)
-        connectionPointContainer := comObjQuery(this._networkListManager, IID_IConnectionPointContainer)
+        try  {
+            connectionPointContainer := comObjQuery(this._networkListManager, IID_IConnectionPointContainer)
+        }  catch  {
+            connectionPointContainer := ""
+        }
         if (!connectionPointContainer)    {
             dllCall("Kernel32.dll\GlobalFree", "Ptr",pSink, "Ptr")
             this._freeCallbackTable()
