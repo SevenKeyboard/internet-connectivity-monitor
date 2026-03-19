@@ -39,7 +39,7 @@ class VersionManager_InternetConnectivityMonitor
     static _ := VersionManager_InternetConnectivityMonitor._init()
     _init()    {
         global
-        INTERNETCONNECTIVITYMONITOR_VERSION := "1.0.2"
+        INTERNETCONNECTIVITYMONITOR_VERSION := "1.0.3"
     }
 }
 class InternetConnectivityMonitor
@@ -170,7 +170,7 @@ class InternetConnectivityMonitor
         varSetCapacity(clsid, 16, 0)
         dllCall("Ole32.dll\CLSIDFromString", "WStr",IID_INetworkListManagerEvents, "Ptr",&clsid, "Int")
         ;  IConnectionPointContainer::FindConnectionPoint
-        hr := dllCall(numGet(numGet(connectionPointContainer + 0) + A_PtrSize * 4), "Ptr",connectionPointContainer, "Ptr",&clsid, "Ptr*",connectionPoint, "Int")
+        hr := dllCall(this._getComMethodPtr(4, connectionPointContainer), "Ptr",connectionPointContainer, "Ptr",&clsid, "Ptr*",connectionPoint, "Int")
         objRelease(connectionPointContainer)
         if (hr !== S_OK || !connectionPoint)    {
             dllCall("Kernel32.dll\GlobalFree", "Ptr",pSink, "Ptr")
@@ -178,7 +178,7 @@ class InternetConnectivityMonitor
             return false
         }
         ;  IConnectionPoint::Advise
-        hr := dllCall(numGet(numGet(connectionPoint + 0) + A_PtrSize * 5), "Ptr",connectionPoint, "Ptr",pSink, "UInt*",nCookie, "Int")
+        hr := dllCall(this._getComMethodPtr(5, connectionPoint), "Ptr",connectionPoint, "Ptr",pSink, "UInt*",nCookie, "Int")
         if (hr !== S_OK || !nCookie)    {
             objRelease(connectionPoint)
             dllCall("Kernel32.dll\GlobalFree", "Ptr",pSink, "Ptr")
@@ -209,9 +209,12 @@ class InternetConnectivityMonitor
         this._nCookie := 0
         if (connectionPoint)    {
             ;  IConnectionPoint::Unadvise
-            dllCall(numGet(numGet(connectionPoint + 0) + A_PtrSize * 6), "Ptr",connectionPoint, "UInt",nCookie, "Int")
+            dllCall(this._getComMethodPtr(6, connectionPoint), "Ptr",connectionPoint, "UInt",nCookie, "Int")
             objRelease(connectionPoint)
         }
+    }
+    _getComMethodPtr(index, comObj)    {
+        return numGet(numGet(comObj + 0, 0, "Ptr"), A_PtrSize * index, "Ptr")
     }
 }
 networkListManagerEventsSink_BC5A0D9D(pSink, arg2 := "", arg3 := "")    {
