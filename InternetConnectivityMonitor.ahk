@@ -38,7 +38,7 @@ class VersionManager_InternetConnectivityMonitor
     static _ := this._init()
     static _init()    {
         global
-        INTERNETCONNECTIVITYMONITOR_VERSION := "1.0.2"
+        INTERNETCONNECTIVITYMONITOR_VERSION := "1.0.3"
     }
 }
 class InternetConnectivityMonitor
